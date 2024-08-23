@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Clone</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #f1f1f1;
+            padding: 1em;
+            text-align: center;
+        }
+
+        #searchInput {
+            width: 300px;
+            padding: 0.5em;
+        }
+
+        #searchButton {
+            padding: 0.5em 1em;
+        }
+
+        #recommendedVideos, #searchResults, #videoPlayer {
+            margin: 2em;
+        }
+
+        #videoResults, #recommendedResults {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1em;
+        }
+
+        .video-item {
+            margin: 1em;
+            max-width: 300px;
+            cursor: pointer;
+        }
+
+        .video-item img {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        #videoPlayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            background: #000;
+            z-index: 1000;
+        }
+
+        #videoPlayer iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #videoOptions {
+            margin-top: 1em;
+            text-align: center;
+        }
+
+        .download-options {
+            margin-top: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-options select, .download-options button {
+            margin: 0 0.5em;
+        }
+
+        #recommendedVideosContainer {
+            margin-top: 10em;
+            height: 40vh;
+            overflow-y: scroll;
+        }
+
+        .back-button {
+            display: block;
+            margin: 1em auto;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="pageTitle">Homepage</h1>
+        <input type="text" id="searchInput" placeholder="Search for videos...">
+        <button id="searchButton">Search</button>
+    </header>
+    <main>
+        <section id="videoPlayer" style="display: none;">
+            <button class="back-button" onclick="showSearchResults()">Back to Search Results</button>
+            <div id="videoOptions"></div>
+        </section>
+        <section id="recommendedVideos">
+            <h2>Recommended Videos</h2>
+            <div id="recommendedVideosContainer"></div>
+        </section>
+        <section id="searchResults" style="display: none;">
+            <button class="back-button" onclick="showHomePage()">Back to Homepage</button>
+            <div id="videoResults"></div>
+        </section>
+    </main>
+    <script>
+        const API_KEY = 'AIzaSyBSPaUjHXt4fC8Q_z0R7Xutjmv3ACIskeo';
+        const API_URL = 'https://www.googleapis.com/youtube/v3/search';
+        const VIDEO_URL = 'https://www.youtube.com/watch?v=';
+
+        // Search videos and display results on search page
+        function searchVideos(query) {
+            fetch(`${API_URL}?part=snippet&type=video&key=${API_KEY}&q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayVideos(data.items);
+                    document.getElementById('recommendedVideos').style.display = 'none';
+                    document.getElementById('searchResults').style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Display recommended videos on homepage
+        function displayRecommendedVideos(videos) {
+            const resultsContainer = document.getElementById('recommendedVideosContainer');
+            resultsContainer.innerHTML = '';
+            videos.forEach(video => {
+                const videoId = video.id.videoId;
+                const title = video.snippet.title;
+                const thumbnail = video.snippet.thumbnails.medium.url;
+
+                const videoElement = document.createElement('div');
+                videoElement.classList.add('video-item');
+                videoElement.innerHTML = `
+                    <img src="${thumbnail}" alt="${title}" />
+                    <h3>${title}</h3>
+                `;
+                videoElement.onclick = () => playVideo(videoId);
+                resultsContainer.appendChild(videoElement);
+            });
+        }
+
+        // Display search results on search page
+        function displayVideos(videos) {
+            const resultsContainer = document.getElementById('videoResults');
+            resultsContainer.innerHTML = '';
+            videos.forEach(video => {
+                const videoId = video.id.videoId;
+                const title = video.snippet.title;
+                const thumbnail = video.snippet.thumbnails.medium.url;
+
+                const videoElement = document.createElement('div');
+                videoElement.classList.add('video-item');
+                videoElement.innerHTML = `
+                    <img src="${thumbnail}" alt="${title}" />
+                    <h3>${title}</h3>
+                `;
+                videoElement.onclick = () => playVideo(videoId);
+                resultsContainer.appendChild(videoElement);
+            });
+        }
+
+        // Play video on video page
+        function playVideo(videoId) {
+            const playerContainer = document.getElementById('videoPlayer');
+            playerContainer.innerHTML = `
+                <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" allowfullscreen></iframe>
+                <div class="download-options">
+                    <select id="quality">
+                        <option value="360p">360p</option>
+                        <option value="480p">480p</option>
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p</option>
+                    </select>
+                    <select id="format">
+                        <option value="mp4">MP4</option>
+                        <option value="mp3">MP3</option>
+                    </select>
+                    <button onclick="downloadVideo()">Download</button>
+                    <button onclick="playInBackground()">Play in Background</button>
+                </div>
+            `;
+            document.getElementById('recommendedVideos').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('videoPlayer').style.display = 'block';
+        }
+
+        // Download video based on selected format and quality
+        function downloadVideo() {
+            const format = document.getElementById('format').value;
+            const quality = document.getElementById('quality').value;
+            // Example URL for downloading; you need to handle actual download process
+            const downloadUrl = `${VIDEO_URL}${videoId}&format=${format}&quality=${quality}`;
+            alert(`Download URL: ${downloadUrl}\nIn format: ${format} and quality: ${quality}`);
+        }
+
+        // Play video as background audio
+        function playInBackground() {
+            const videoId = new URLSearchParams(window.location.search).get('v');
+            const audioUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const audio = new Audio(audioUrl);
+            audio.play();
+            alert(`Playing ${audioUrl} in background`);
+        }
+
+        // Load recommended videos on homepage
+        function loadRecommendedVideos() {
+            fetch(`${API_URL}?part=snippet&type=video&key=${API_KEY}&chart=mostPopular`)
+                .then(response => response.json())
+                .then(data => {
+                    displayRecommendedVideos(data.items);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Show home page
+        function showHomePage() {
+            document.getElementById('recommendedVideos').style.display = 'block';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('videoPlayer').style.display = 'none';
+        }
+
+        // Show search results page
+        function showSearchResults() {
+            document.getElementById('recommendedVideos').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'block';
+            document.getElementById('videoPlayer').style.display = 'none';
+        }
+
+        // Search button functionality
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const query = document.getElementById('searchInput').value;
+            if (query) {
+                searchVideos(query);
+            }
+        });
+
+        // Initialize home page
+        window.onload = loadRecommendedVideos;
+    </script>
+</body>
+</html>
